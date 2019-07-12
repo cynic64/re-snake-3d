@@ -13,14 +13,15 @@ use snake::Position3D;
 const TIME_BETWEEN_MOVES: f32 = 0.2;
 
 fn main() {
-    let (tx, rx): (Sender<Position3D>, Receiver<Position3D>) = mpsc::channel();
-    let camera = Box::new(CustomOrbitCamera::with_receiving_channel(rx));
+    let (snake_pos_send, snake_pos_recv): (Sender<Position3D>, Receiver<Position3D>) = mpsc::channel();
+    let (camera_angle_send, camera_angle_recv): (Sender<Vec3>, Receiver<Vec3>) = mpsc::channel();
+    let camera = Box::new(CustomOrbitCamera::with_channels(snake_pos_recv, camera_angle_send));
     let mut app = AppBuilder::default()
         .with_multisampling()
         .with_camera(camera)
         .build();
 
-    let mut snake = snake::Snake::with_sending_channel(tx);
+    let mut snake = snake::Snake::with_channels(snake_pos_send, camera_angle_recv);
     let mut last_move_time = std::time::Instant::now();
 
     while !app.done {
@@ -30,6 +31,7 @@ fn main() {
 
         if get_elapsed(last_move_time) > TIME_BETWEEN_MOVES {
             last_move_time = std::time::Instant::now();
+            snake.grow();
             snake.move_pieces();
         }
 
@@ -51,10 +53,14 @@ struct CustomOrbitCamera {
     mouse_sens: f32,
     orbit_distance: f32,
     snake_pos_recv: Receiver<Position3D>,
+    camera_angle_send: Sender<Vec3>,
+    target_pos: Vec3,
+    max_dist: f32,
+    movement_speed: f32,
 }
 
 impl CustomOrbitCamera {
-    fn with_receiving_channel(snake_pos_recv: Receiver<Position3D>) -> Self {
+    fn with_channels(snake_pos_recv: Receiver<Position3D>, camera_angle_send: Sender<Vec3>) -> Self {
         let center_position = vec3(0.0, 0.0, 0.0);
         let pitch: f32 = 0.0;
         let yaw: f32 = std::f32::consts::PI / 2.0;
@@ -67,7 +73,10 @@ impl CustomOrbitCamera {
         let up = vec3(0.0, 1.0, 0.0);
         let world_up = vec3(0.0, 1.0, 0.0);
         let mouse_sens = 0.0007;
-        let orbit_distance = 8.0;
+        let orbit_distance = 32.0;
+        let target_pos = center_position.clone();
+        let max_dist = 2.0;
+        let movement_speed = 0.5;
 
         CustomOrbitCamera {
             center_position,
@@ -80,6 +89,10 @@ impl CustomOrbitCamera {
             mouse_sens,
             orbit_distance,
             snake_pos_recv,
+            camera_angle_send,
+            target_pos,
+            max_dist,
+            movement_speed,
         }
     }
 
@@ -91,12 +104,13 @@ impl CustomOrbitCamera {
         ));
 
         self.right = normalize(&glm::Vec3::cross(&self.front, &self.world_up));
+
+        self.camera_angle_send.send(self.front.clone()).unwrap();
     }
 
     fn check_channel(&mut self) {
         if let Ok(pos) = self.snake_pos_recv.try_recv() {
-            println!("Got new position!: {:?}", pos);
-            self.center_position = vec3(pos.x, pos.y, pos.z);
+            self.target_pos = vec3(pos.x, pos.y - 10.0, pos.z);
         }
     }
 }
@@ -112,7 +126,7 @@ impl Camera for CustomOrbitCamera {
         .into()
     }
 
-    fn handle_input(&mut self, events: &[Event], _keys_down: &KeysDown, _delta: f32) {
+    fn handle_input(&mut self, events: &[Event], _keys_down: &KeysDown, delta: f32) {
         events.iter().for_each(|ev| {
             if let Some(mouse_movement) = winit_event_to_mouse_movement(ev) {
                 let (x, y) = mouse_movement;
@@ -134,5 +148,18 @@ impl Camera for CustomOrbitCamera {
         });
 
         self.check_channel();
+
+        let move_dir = vec3(self.target_pos.x - self.center_position.x, self.target_pos.y - self.center_position.y, self.target_pos.z - self.center_position.z);
+        let movement_vec = vec3(move_dir.x * delta * self.movement_speed, move_dir.y * delta * self.movement_speed, move_dir.z * delta * self.movement_speed);
+        self.center_position.x += movement_vec.x;
+        self.center_position.y += movement_vec.y;
+        self.center_position.z += movement_vec.z;
+
+        let distance = distance(&self.center_position, &self.target_pos);
+        if distance > self.max_dist {
+            self.movement_speed += 0.01;
+        } else {
+            self.movement_speed -= 0.01;
+        }
     }
 }

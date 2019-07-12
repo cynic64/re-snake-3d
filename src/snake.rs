@@ -11,6 +11,8 @@ pub struct Snake {
     pieces: Vec<Position3D>,
     velocity: Velocity,
     snake_pos_send: Sender<Position3D>,
+    camera_angle_recv: Receiver<Vec3>,
+    must_grow: bool,
 }
 
 #[derive(Clone)]
@@ -28,7 +30,7 @@ pub struct Position3D {
 }
 
 impl Snake {
-    pub fn with_sending_channel(snake_pos_send: Sender<Position3D>) -> Self {
+    pub fn with_channels(snake_pos_send: Sender<Position3D>, camera_angle_recv: Receiver<Vec3>) -> Self {
         Self {
             pieces: vec![
                 Position3D { x: 0.0, y: 0.0, z: 0.0 },
@@ -44,18 +46,37 @@ impl Snake {
                 z: 0.0,
             },
             snake_pos_send,
+            camera_angle_recv,
+            must_grow: false,
         }
     }
 
+    pub fn grow(&mut self) {
+        self.must_grow = true;
+    }
+
     pub fn move_pieces(&mut self) {
+        // check if we've started going in a different direction because the user changed the camera angle
+        self.update_velocity();
+
         // closure borrow checking, grumble grumble
         let velocity = self.velocity.clone();
 
-        self.pieces.iter_mut().for_each(|piece| {
-            piece.x += velocity.x;
-            piece.y += velocity.y;
-            piece.z += velocity.z;
-        });
+        let pos_of_tail = self.pieces.last().unwrap().clone();
+
+        // move all except head by shifting each piece to the position of the piece in front of it
+        for idx in (1..self.pieces.len()).rev() {
+            self.pieces[idx] = self.pieces[idx - 1].clone();
+        }
+        // move head
+        self.pieces[0].x += velocity.x;
+        self.pieces[0].y += velocity.y;
+        self.pieces[0].z += velocity.z;
+        // duplicate tail to grow if necessary
+        if self.must_grow {
+            self.pieces.push(pos_of_tail);
+            self.must_grow = false;
+        }
 
         // send the coordinate of the head to the camera
         self.snake_pos_send.send(self.pieces[0].clone()).unwrap();
@@ -65,12 +86,22 @@ impl Snake {
         self.pieces.iter().enumerate().flat_map(move |(idx, grid_coord)| CUBE_VERTICES.iter().map(move |vertex| Vertex {
             position: [vertex.position[0] + grid_coord.x, vertex.position[1] + grid_coord.y, vertex.position[2] + grid_coord.z],
             color: if idx == 0 {
-                    [1.0, 0.0, 0.0]
+                    [0.5, 0.8, 1.0]
                 } else {
                     let value = ((self.pieces.len() - idx) as f32) / ((self.pieces.len()) as f32);
                     [value, value, value]
                 },
             normal: vertex.normal,
         })).collect()
+    }
+
+    pub fn update_velocity(&mut self) {
+        if let Some(latest_angle) = self.camera_angle_recv.try_iter().last() {
+            self.velocity = Velocity {
+                x: -latest_angle.x,
+                y: -latest_angle.y,
+                z: -latest_angle.z,
+            };
+        }
     }
 }
