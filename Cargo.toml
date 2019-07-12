@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 render-engine = { path = "../render-engine" }
+nalgebra-glm = "0.4"
