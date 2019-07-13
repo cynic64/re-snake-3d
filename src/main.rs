@@ -9,8 +9,10 @@ use std::sync::mpsc::{Sender, Receiver};
 
 mod snake;
 use snake::Position3D;
+use snake::CUBE_VERTICES;
 
-const TIME_BETWEEN_MOVES: f32 = 0.2;
+const TIME_BETWEEN_MOVES: f32 = 0.1;
+const WORLD_SIZE: f32 = 64.0;
 
 fn main() {
     let (snake_pos_send, snake_pos_recv): (Sender<Position3D>, Receiver<Position3D>) = mpsc::channel();
@@ -21,23 +23,32 @@ fn main() {
         .with_camera(camera)
         .build();
 
-    let mut snake = snake::Snake::with_channels(snake_pos_send, camera_angle_recv);
+    let mut world = World::from_creator(app.create_new_vbuf_creator());
+    let mut world_com = world.get_communicator();
+
+    let bounding_cube_verts: Vec<_> = CUBE_VERTICES.iter().map(|vertex| Vertex {
+        position: [vertex.position[0] * WORLD_SIZE, vertex.position[1] * WORLD_SIZE, vertex.position[2] * WORLD_SIZE],
+        color: [1.0, 0.8, 0.8],
+        normal: vertex.normal,
+    }).collect();
+    world_com.add_object_from_verts("bounding box".to_string(), bounding_cube_verts);
+
+    let mut snake = snake::Snake::with_channels_and_com(snake_pos_send, camera_angle_recv, world_com);
     let mut last_move_time = std::time::Instant::now();
 
-    while !app.done {
-        app.clear_vertex_buffers();
-        let new_verts = snake.get_verts();
-        app.new_vbuf_from_verts(&new_verts);
+    while !app.done && !snake.is_dead {
+        world.check_for_commands();
+        app.set_vertex_buffers(world.get_vbufs());
 
         if get_elapsed(last_move_time) > TIME_BETWEEN_MOVES {
             last_move_time = std::time::Instant::now();
-            snake.grow();
             snake.move_pieces();
         }
 
         app.draw_frame();
     }
 
+    println!("Noob, you died lul");
     app.print_fps();
 }
 
@@ -52,6 +63,7 @@ struct CustomOrbitCamera {
     yaw: f32,
     mouse_sens: f32,
     orbit_distance: f32,
+    normal_orbit_distance: f32,
     snake_pos_recv: Receiver<Position3D>,
     camera_angle_send: Sender<Vec3>,
     target_pos: Vec3,
@@ -63,7 +75,7 @@ impl CustomOrbitCamera {
     fn with_channels(snake_pos_recv: Receiver<Position3D>, camera_angle_send: Sender<Vec3>) -> Self {
         let center_position = vec3(0.0, 0.0, 0.0);
         let pitch: f32 = 0.0;
-        let yaw: f32 = std::f32::consts::PI / 2.0;
+        let yaw: f32 = 0.0;
         let front = normalize(&vec3(
             pitch.cos() * yaw.cos(),
             pitch.sin(),
@@ -74,6 +86,7 @@ impl CustomOrbitCamera {
         let world_up = vec3(0.0, 1.0, 0.0);
         let mouse_sens = 0.0007;
         let orbit_distance = 32.0;
+        let normal_orbit_distance = 32.0;
         let target_pos = center_position.clone();
         let max_dist = 2.0;
         let movement_speed = 0.5;
@@ -88,6 +101,7 @@ impl CustomOrbitCamera {
             yaw,
             mouse_sens,
             orbit_distance,
+            normal_orbit_distance,
             snake_pos_recv,
             camera_angle_send,
             target_pos,
@@ -142,8 +156,6 @@ impl Camera for CustomOrbitCamera {
                 } else if self.pitch < -max_pitch {
                     self.pitch = -max_pitch;
                 }
-
-                self.update();
             }
         });
 
@@ -155,11 +167,53 @@ impl Camera for CustomOrbitCamera {
         self.center_position.y += movement_vec.y;
         self.center_position.z += movement_vec.z;
 
+        let out_of_bounds = {
+            let max = WORLD_SIZE / 2.0;
+            // figure out where min and abs are for this stuff
+            let dist_x = if self.center_position.x > 0.0 {
+                max - self.center_position.x
+            } else {
+                max + self.center_position.x
+            };
+
+            let dist_y = if self.center_position.y > 0.0 {
+                max - self.center_position.y
+            } else {
+                max + self.center_position.y
+            };
+
+            let dist_z = if self.center_position.z > 0.0 {
+                max - self.center_position.z
+            } else {
+                max + self.center_position.z
+            };
+
+            let min_dist = if dist_x < dist_y && dist_x < dist_z {
+                dist_x
+            } else if dist_y < dist_x && dist_y < dist_z {
+                dist_y
+            } else {
+                dist_z
+            };
+
+            if min_dist > self.normal_orbit_distance {
+                self.orbit_distance = self.normal_orbit_distance;
+            } else {
+                self.orbit_distance = min_dist;
+            }
+        };
+
         let distance = distance(&self.center_position, &self.target_pos);
         if distance > self.max_dist {
             self.movement_speed += 0.01;
         } else {
             self.movement_speed -= 0.01;
         }
+
+        if self.movement_speed > 1.0 {
+            self.movement_speed = 1.0;
+        }
+
+        self.update();
     }
 }
