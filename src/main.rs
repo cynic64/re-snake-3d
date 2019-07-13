@@ -190,41 +190,39 @@ impl Camera for CustomOrbitCamera {
         self.center_position.y += movement_vec.y;
         self.center_position.z += movement_vec.z;
 
-        let out_of_bounds = {
-            let max = WORLD_SIZE / 2.0;
-            // figure out where min and abs are for this stuff
-            let dist_x = if self.center_position.x > 0.0 {
-                max - self.center_position.x
-            } else {
-                max + self.center_position.x
-            };
-
-            let dist_y = if self.center_position.y > 0.0 {
-                max - self.center_position.y
-            } else {
-                max + self.center_position.y
-            };
-
-            let dist_z = if self.center_position.z > 0.0 {
-                max - self.center_position.z
-            } else {
-                max + self.center_position.z
-            };
-
-            let min_dist = if dist_x < dist_y && dist_x < dist_z {
-                dist_x
-            } else if dist_y < dist_x && dist_y < dist_z {
-                dist_y
-            } else {
-                dist_z
-            };
-
-            if min_dist > self.normal_orbit_distance {
-                self.orbit_distance = self.normal_orbit_distance;
-            } else {
-                self.orbit_distance = min_dist;
-            }
+        let max = WORLD_SIZE / 2.0;
+        // figure out where min and abs are for this stuff
+        let dist_x = if self.center_position.x > 0.0 {
+            max - self.center_position.x
+        } else {
+            max + self.center_position.x
         };
+
+        let dist_y = if self.center_position.y > 0.0 {
+            max - self.center_position.y
+        } else {
+            max + self.center_position.y
+        };
+
+        let dist_z = if self.center_position.z > 0.0 {
+            max - self.center_position.z
+        } else {
+            max + self.center_position.z
+        };
+
+        let min_dist = if dist_x < dist_y && dist_x < dist_z {
+            dist_x
+        } else if dist_y < dist_x && dist_y < dist_z {
+            dist_y
+        } else {
+            dist_z
+        };
+
+        if min_dist > self.normal_orbit_distance {
+            self.orbit_distance = self.normal_orbit_distance;
+        } else {
+            self.orbit_distance = min_dist;
+        }
 
         let distance = distance(&self.center_position, &self.target_pos);
         if distance > self.max_dist {
