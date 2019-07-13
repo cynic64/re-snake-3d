@@ -33,15 +33,43 @@ pub struct Position3D {
 }
 
 impl Snake {
-    pub fn with_channels_and_com(snake_pos_send: Sender<Position3D>, camera_angle_recv: Receiver<Vec3>, world_com: WorldCommunicator) -> Self {
+    pub fn with_channels_and_com(
+        snake_pos_send: Sender<Position3D>,
+        camera_angle_recv: Receiver<Vec3>,
+        world_com: WorldCommunicator,
+    ) -> Self {
         Self {
             pieces: vec![
-                Position3D { x: 0.0, y: 0.0, z: 0.0 },
-                Position3D { x: 1.0, y: 0.0, z: 0.0 },
-                Position3D { x: 2.0, y: 0.0, z: 0.0 },
-                Position3D { x: 3.0, y: 0.0, z: 0.0 },
-                Position3D { x: 4.0, y: 0.0, z: 0.0 },
-                Position3D { x: 5.0, y: 0.0, z: 0.0 },
+                Position3D {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Position3D {
+                    x: 1.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Position3D {
+                    x: 2.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Position3D {
+                    x: 3.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Position3D {
+                    x: 4.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Position3D {
+                    x: 5.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
             ],
             velocity: Velocity {
                 x: -1.0,
@@ -98,7 +126,8 @@ impl Snake {
     fn update_mesh(&mut self) {
         let verts = self.get_verts();
         self.world_com.delete_object("snake".to_string());
-        self.world_com.add_object_from_verts("snake".to_string(), verts);
+        self.world_com
+            .add_object_from_verts("snake".to_string(), verts);
     }
 
     fn check_if_dead(&mut self) {
@@ -113,29 +142,49 @@ impl Snake {
         p_iter.next();
 
         if p_iter.any(|piece| {
-            distance(&vec3(piece.x, piece.y, piece.z), &vec3(self.pieces[0].x, self.pieces[0].y, self.pieces[0].z)) < 1.0
+            distance(
+                &vec3(piece.x, piece.y, piece.z),
+                &vec3(self.pieces[0].x, self.pieces[0].y, self.pieces[0].z),
+            ) < 1.0
         }) {
             self.is_dead = true;
         }
 
         // make sure the head is in bounds
         let max = WORLD_SIZE / 2.0;
-        if self.pieces[0].x > max || self.pieces[0].x < -max || self.pieces[0].y > max || self.pieces[0].y < -max || self.pieces[0].z > max || self.pieces[0].z < -max {
+        if self.pieces[0].x > max
+            || self.pieces[0].x < -max
+            || self.pieces[0].y > max
+            || self.pieces[0].y < -max
+            || self.pieces[0].z > max
+            || self.pieces[0].z < -max
+        {
             self.is_dead = true;
         }
     }
 
     fn get_verts(&self) -> Vec<Vertex> {
-        let snake_verts_iter = self.pieces.iter().enumerate().flat_map(move |(idx, grid_coord)| CUBE_VERTICES.iter().map(move |vertex| Vertex {
-            position: [vertex.position[0] + grid_coord.x, vertex.position[1] + grid_coord.y, vertex.position[2] + grid_coord.z],
-            color: if idx == 0 {
-                    [0.5, 0.8, 1.0]
-                } else {
-                    let value = ((self.pieces.len() - idx) as f32) / ((self.pieces.len()) as f32);
-                    [value, value, value]
-                },
-            normal: vertex.normal,
-        }));
+        let snake_verts_iter = self
+            .pieces
+            .iter()
+            .enumerate()
+            .flat_map(move |(idx, grid_coord)| {
+                CUBE_VERTICES.iter().map(move |vertex| Vertex {
+                    position: [
+                        vertex.position[0] + grid_coord.x,
+                        vertex.position[1] + grid_coord.y,
+                        vertex.position[2] + grid_coord.z,
+                    ],
+                    color: if idx == 0 {
+                        [0.5, 0.8, 1.0]
+                    } else {
+                        let value =
+                            ((self.pieces.len() - idx) as f32) / ((self.pieces.len()) as f32);
+                        [value, value, value]
+                    },
+                    normal: vertex.normal,
+                })
+            });
 
         snake_verts_iter.collect()
     }

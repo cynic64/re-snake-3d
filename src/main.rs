@@ -1,11 +1,11 @@
-extern crate render_engine as re;
 extern crate nalgebra_glm as glm;
+extern crate render_engine as re;
 
-use re::*;
 use glm::*;
+use re::*;
 
 use std::sync::mpsc;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 
 mod snake;
 use snake::Position3D;
@@ -15,9 +15,13 @@ const TIME_BETWEEN_MOVES: f32 = 0.1;
 const WORLD_SIZE: f32 = 64.0;
 
 fn main() {
-    let (snake_pos_send, snake_pos_recv): (Sender<Position3D>, Receiver<Position3D>) = mpsc::channel();
+    let (snake_pos_send, snake_pos_recv): (Sender<Position3D>, Receiver<Position3D>) =
+        mpsc::channel();
     let (camera_angle_send, camera_angle_recv): (Sender<Vec3>, Receiver<Vec3>) = mpsc::channel();
-    let camera = Box::new(CustomOrbitCamera::with_channels(snake_pos_recv, camera_angle_send));
+    let camera = Box::new(CustomOrbitCamera::with_channels(
+        snake_pos_recv,
+        camera_angle_send,
+    ));
     let mut app = AppBuilder::default()
         .with_multisampling()
         .with_camera(camera)
@@ -26,14 +30,22 @@ fn main() {
     let mut world = World::from_creator(app.create_new_vbuf_creator());
     let mut world_com = world.get_communicator();
 
-    let bounding_cube_verts: Vec<_> = CUBE_VERTICES.iter().map(|vertex| Vertex {
-        position: [vertex.position[0] * WORLD_SIZE, vertex.position[1] * WORLD_SIZE, vertex.position[2] * WORLD_SIZE],
-        color: [1.0, 0.8, 0.8],
-        normal: vertex.normal,
-    }).collect();
+    let bounding_cube_verts: Vec<_> = CUBE_VERTICES
+        .iter()
+        .map(|vertex| Vertex {
+            position: [
+                vertex.position[0] * WORLD_SIZE,
+                vertex.position[1] * WORLD_SIZE,
+                vertex.position[2] * WORLD_SIZE,
+            ],
+            color: [1.0, 0.8, 0.8],
+            normal: vertex.normal,
+        })
+        .collect();
     world_com.add_object_from_verts("bounding box".to_string(), bounding_cube_verts);
 
-    let mut snake = snake::Snake::with_channels_and_com(snake_pos_send, camera_angle_recv, world_com);
+    let mut snake =
+        snake::Snake::with_channels_and_com(snake_pos_send, camera_angle_recv, world_com);
     let mut last_move_time = std::time::Instant::now();
 
     while !app.done && !snake.is_dead {
@@ -72,7 +84,10 @@ struct CustomOrbitCamera {
 }
 
 impl CustomOrbitCamera {
-    fn with_channels(snake_pos_recv: Receiver<Position3D>, camera_angle_send: Sender<Vec3>) -> Self {
+    fn with_channels(
+        snake_pos_recv: Receiver<Position3D>,
+        camera_angle_send: Sender<Vec3>,
+    ) -> Self {
         let center_position = vec3(0.0, 0.0, 0.0);
         let pitch: f32 = 0.0;
         let yaw: f32 = 0.0;
@@ -161,8 +176,16 @@ impl Camera for CustomOrbitCamera {
 
         self.check_channel();
 
-        let move_dir = vec3(self.target_pos.x - self.center_position.x, self.target_pos.y - self.center_position.y, self.target_pos.z - self.center_position.z);
-        let movement_vec = vec3(move_dir.x * delta * self.movement_speed, move_dir.y * delta * self.movement_speed, move_dir.z * delta * self.movement_speed);
+        let move_dir = vec3(
+            self.target_pos.x - self.center_position.x,
+            self.target_pos.y - self.center_position.y,
+            self.target_pos.z - self.center_position.z,
+        );
+        let movement_vec = vec3(
+            move_dir.x * delta * self.movement_speed,
+            move_dir.y * delta * self.movement_speed,
+            move_dir.z * delta * self.movement_speed,
+        );
         self.center_position.x += movement_vec.x;
         self.center_position.y += movement_vec.y;
         self.center_position.z += movement_vec.z;
