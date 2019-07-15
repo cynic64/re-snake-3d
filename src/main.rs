@@ -1,5 +1,6 @@
 extern crate nalgebra_glm as glm;
 extern crate render_engine as re;
+extern crate rand;
 
 use glm::*;
 use re::*;
@@ -10,6 +11,8 @@ use std::sync::mpsc::{Receiver, Sender};
 mod snake;
 use snake::Position3D;
 use snake::CUBE_VERTICES;
+
+mod apple;
 
 const TIME_BETWEEN_MOVES: f32 = 0.1;
 const WORLD_SIZE: f32 = 64.0;
@@ -45,7 +48,9 @@ fn main() {
     world_com.add_object_from_verts("bounding box".to_string(), bounding_cube_verts);
 
     let mut snake =
-        snake::Snake::with_channels_and_com(snake_pos_send, camera_angle_recv, world_com);
+        snake::Snake::with_channels_and_com(snake_pos_send, camera_angle_recv, world_com.clone());
+    let mut apple = apple::Apple::from_world_com(world_com.clone());
+
     let mut last_move_time = std::time::Instant::now();
 
     while !app.done && !snake.is_dead {
@@ -55,6 +60,11 @@ fn main() {
         if get_elapsed(last_move_time) > TIME_BETWEEN_MOVES {
             last_move_time = std::time::Instant::now();
             snake.move_pieces();
+
+            if snake.check_if_ate_apple(&apple) {
+                snake.grow();
+                apple.randomize_position();
+            }
         }
 
         app.draw_frame();

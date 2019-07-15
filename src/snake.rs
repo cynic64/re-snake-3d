@@ -12,10 +12,10 @@ pub struct Snake {
     velocity: Velocity,
     snake_pos_send: Sender<Position3D>,
     camera_angle_recv: Receiver<Vec3>,
-    must_grow: bool,
     pub is_dead: bool,
     counter: u32,
     world_com: WorldCommunicator,
+    pieces_to_grow: u32,
 }
 
 #[derive(Clone)]
@@ -78,21 +78,16 @@ impl Snake {
             },
             snake_pos_send,
             camera_angle_recv,
-            must_grow: false,
             is_dead: false,
             counter: 0,
             world_com,
+            pieces_to_grow: 0,
         }
     }
 
     pub fn move_pieces(&mut self) {
         // check if we've started going in a different direction because the user changed the camera angle
         self.update_velocity();
-
-        // check if we gotta grow
-        if self.counter % 3 == 0 {
-            self.must_grow = true;
-        }
 
         // closure borrow checking, grumble grumble
         let velocity = self.velocity.clone();
@@ -107,10 +102,13 @@ impl Snake {
         self.pieces[0].x += velocity.x;
         self.pieces[0].y += velocity.y;
         self.pieces[0].z += velocity.z;
+
         // duplicate tail to grow if necessary
-        if self.must_grow {
+        if self.counter % 3 == 0 {
             self.pieces.push(pos_of_tail);
-            self.must_grow = false;
+        } else if self.pieces_to_grow > 0 {
+            self.pieces.push(pos_of_tail);
+            self.pieces_to_grow -= 1;
         }
 
         // send the coordinate of the head to the camera
@@ -197,5 +195,18 @@ impl Snake {
                 z: -latest_angle.z,
             };
         }
+    }
+
+    pub fn check_if_ate_apple(&self, apple: &apple::Apple) -> bool {
+        self.pieces.iter().any(|piece| {
+            distance(
+                &vec3(piece.x, piece.y, piece.z),
+                &apple.position,
+            ) < 1.0
+        })
+    }
+
+    pub fn grow(&mut self) {
+        self.pieces_to_grow = 20;
     }
 }
