@@ -30,7 +30,7 @@ fn main() {
         .with_camera(camera)
         .build();
 
-    let mut world = World::from_creator(app.create_new_vbuf_creator());
+    let world = World::from_creator(app.create_new_vbuf_creator());
     let mut world_com = world.get_communicator();
 
     app.add_world(world);

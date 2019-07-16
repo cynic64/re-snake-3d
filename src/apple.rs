@@ -15,7 +15,6 @@ pub struct Apple {
 
 impl Apple {
     pub fn from_world_com(world_com: WorldCommunicator) -> Self {
-        let mut rng = rand::thread_rng();
         let mut apple = Self {
             position: vec3(0.0, 0.0, 0.0),
             world_com,
