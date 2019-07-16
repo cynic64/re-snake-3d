@@ -28,10 +28,10 @@ impl Apple {
 
     pub fn randomize_position(&mut self) {
         let mut rng = rand::thread_rng();
-        let half = WORLD_SIZE as i32 / 2;
-        self.position.x = rng.gen_range(-half, half) as f32;
-        self.position.y = rng.gen_range(-half, half) as f32;
-        self.position.z = rng.gen_range(-half, half) as f32;
+        let max = WORLD_SIZE as i32 / 2 - 10;
+        self.position.x = rng.gen_range(-max, max) as f32;
+        self.position.y = rng.gen_range(-max, max) as f32;
+        self.position.z = rng.gen_range(-max, max) as f32;
 
         self.update_mesh();
     }
