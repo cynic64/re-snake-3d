@@ -8,6 +8,8 @@ use crate::WORLD_SIZE;
 
 use crate::rand::Rng;
 
+pub const APPLE_RADIUS: f32 = 5.0;
+
 pub struct Apple {
     pub position: Vec3,
     world_com: WorldCommunicator,
@@ -38,13 +40,7 @@ impl Apple {
     fn update_mesh(&mut self) {
         self.world_com.delete_object("apple".to_string());
 
-        let verts: Vec<_> = crate::snake::CUBE_VERTICES.iter().map(|vertex| Vertex {
-            position: [self.position.x + vertex.position[0], self.position.y + vertex.position[1], self.position.z + vertex.position[2]],
-            color: [1.0, 0.0, 0.0],
-            normal: vertex.normal,
-        })
-        .collect();
-
+        let verts = mesh_gen::create_vertices_for_cube(self.position.into(), APPLE_RADIUS, [1.0, 0.0, 0.0]);
         self.world_com.add_object_from_verts("apple".to_string(), verts);
     }
 }

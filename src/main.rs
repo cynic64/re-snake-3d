@@ -9,8 +9,6 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
 mod snake;
-use snake::CUBE_VERTICES;
-
 mod apple;
 
 const TIME_BETWEEN_MOVES: f32 = 0.1;
@@ -34,18 +32,7 @@ fn main() {
 
     app.add_world(world);
 
-    let bounding_cube_verts: Vec<_> = CUBE_VERTICES
-        .iter()
-        .map(|vertex| Vertex {
-            position: [
-                vertex.position[0] * WORLD_SIZE,
-                vertex.position[1] * WORLD_SIZE,
-                vertex.position[2] * WORLD_SIZE,
-            ],
-            color: [1.0, 0.8, 0.8],
-            normal: vertex.normal,
-        })
-        .collect();
+    let bounding_cube_verts = mesh_gen::create_vertices_for_cube([0.0, 0.0, 0.0], WORLD_SIZE / 2.0, [1.0, 0.8, 0.8]);
     world_com.add_object_from_verts("bounding box".to_string(), bounding_cube_verts);
 
     let mut snake =
