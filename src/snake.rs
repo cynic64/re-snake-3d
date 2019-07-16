@@ -18,6 +18,8 @@ pub struct Snake {
     pieces_to_grow: u32,
 }
 
+const SNAKE_PIECE_SIZE: f32 = 3.0;
+
 impl Snake {
     pub fn with_channels_and_com(
         snake_pos_send: Sender<Vec3>,
@@ -69,7 +71,6 @@ impl Snake {
 
         self.check_if_dead();
         self.update_mesh();
-
         // increment counter
         self.counter += 1;
     }
@@ -83,12 +84,17 @@ impl Snake {
 
     fn check_if_dead(&mut self) {
         // compare all pieces except the head to the head's position to see if it is too close to any
-        if self.pieces.len() < 3 {
+        if self.pieces.len() < 8 {
             return;
         }
 
         let mut p_iter = self.pieces.iter();
-        // skip the first 2 pieces
+        // skip the first 7 pieces
+        p_iter.next();
+        p_iter.next();
+        p_iter.next();
+        p_iter.next();
+        p_iter.next();
         p_iter.next();
         p_iter.next();
 
@@ -96,7 +102,7 @@ impl Snake {
             distance(
                 &vec3(piece.x, piece.y, piece.z),
                 &self.pieces[0]
-            ) < 1.0
+            ) < SNAKE_PIECE_SIZE
         }) {
             self.is_dead = true;
         }
@@ -122,9 +128,9 @@ impl Snake {
             .flat_map(move |(idx, piece_pos)| {
                 CUBE_VERTICES.iter().map(move |vertex| Vertex {
                     position: [
-                        vertex.position[0] + piece_pos.x,
-                        vertex.position[1] + piece_pos.y,
-                        vertex.position[2] + piece_pos.z,
+                        vertex.position[0] * SNAKE_PIECE_SIZE + piece_pos.x,
+                        vertex.position[1] * SNAKE_PIECE_SIZE + piece_pos.y,
+                        vertex.position[2] * SNAKE_PIECE_SIZE + piece_pos.z,
                     ],
                     color: if idx == 0 {
                         [0.5, 0.8, 1.0]
@@ -151,7 +157,7 @@ impl Snake {
             distance(
                 piece,
                 &apple.position,
-            ) < 1.0
+            ) < SNAKE_PIECE_SIZE
         })
     }
 
