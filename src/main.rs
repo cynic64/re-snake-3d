@@ -9,7 +9,6 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
 mod snake;
-use snake::Position3D;
 use snake::CUBE_VERTICES;
 
 mod apple;
@@ -18,7 +17,7 @@ const TIME_BETWEEN_MOVES: f32 = 0.1;
 const WORLD_SIZE: f32 = 64.0;
 
 fn main() {
-    let (snake_pos_send, snake_pos_recv): (Sender<Position3D>, Receiver<Position3D>) =
+    let (snake_pos_send, snake_pos_recv): (Sender<Vec3>, Receiver<Vec3>) =
         mpsc::channel();
     let (camera_angle_send, camera_angle_recv): (Sender<Vec3>, Receiver<Vec3>) = mpsc::channel();
     let camera = Box::new(CustomOrbitCamera::with_channels(
@@ -85,7 +84,7 @@ struct CustomOrbitCamera {
     mouse_sens: f32,
     orbit_distance: f32,
     normal_orbit_distance: f32,
-    snake_pos_recv: Receiver<Position3D>,
+    snake_pos_recv: Receiver<Vec3>,
     camera_angle_send: Sender<Vec3>,
     target_pos: Vec3,
     max_dist: f32,
@@ -94,7 +93,7 @@ struct CustomOrbitCamera {
 
 impl CustomOrbitCamera {
     fn with_channels(
-        snake_pos_recv: Receiver<Position3D>,
+        snake_pos_recv: Receiver<Vec3>,
         camera_angle_send: Sender<Vec3>,
     ) -> Self {
         let center_position = vec3(0.0, 0.0, 0.0);

@@ -8,9 +8,9 @@ pub const CUBE_VERTICES: [Vertex; 36] = [ Vertex { position: CUBE_CORNER_POSITIO
 
 pub struct Snake {
     // the first piece is the head, the last is the tail
-    pieces: Vec<Position3D>,
-    velocity: Velocity,
-    snake_pos_send: Sender<Position3D>,
+    pieces: Vec<Vec3>,
+    velocity: Vec3,
+    snake_pos_send: Sender<Vec3>,
     camera_angle_recv: Receiver<Vec3>,
     pub is_dead: bool,
     counter: u32,
@@ -18,64 +18,22 @@ pub struct Snake {
     pieces_to_grow: u32,
 }
 
-#[derive(Clone)]
-struct Velocity {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-#[derive(Debug, Clone)]
-pub struct Position3D {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-
 impl Snake {
     pub fn with_channels_and_com(
-        snake_pos_send: Sender<Position3D>,
+        snake_pos_send: Sender<Vec3>,
         camera_angle_recv: Receiver<Vec3>,
         world_com: WorldCommunicator,
     ) -> Self {
         Self {
             pieces: vec![
-                Position3D {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
-                Position3D {
-                    x: 1.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
-                Position3D {
-                    x: 2.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
-                Position3D {
-                    x: 3.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
-                Position3D {
-                    x: 4.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
-                Position3D {
-                    x: 5.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
+                vec3(0.0, 0.0, 0.0),
+                vec3(1.0, 0.0, 0.0),
+                vec3(2.0, 0.0, 0.0),
+                vec3(3.0, 0.0, 0.0),
+                vec3(4.0, 0.0, 0.0),
+                vec3(5.0, 0.0, 0.0),
             ],
-            velocity: Velocity {
-                x: -1.0,
-                y: 0.0,
-                z: 0.0,
-            },
+            velocity: vec3(-1.0, 0.0, 0.0),
             snake_pos_send,
             camera_angle_recv,
             is_dead: false,
@@ -89,9 +47,6 @@ impl Snake {
         // check if we've started going in a different direction because the user changed the camera angle
         self.update_velocity();
 
-        // closure borrow checking, grumble grumble
-        let velocity = self.velocity.clone();
-
         let pos_of_tail = self.pieces.last().unwrap().clone();
 
         // move all except head by shifting each piece to the position of the piece in front of it
@@ -99,9 +54,7 @@ impl Snake {
             self.pieces[idx] = self.pieces[idx - 1].clone();
         }
         // move head
-        self.pieces[0].x += velocity.x;
-        self.pieces[0].y += velocity.y;
-        self.pieces[0].z += velocity.z;
+        self.pieces[0] += self.velocity;
 
         // duplicate tail to grow if necessary
         if self.counter % 3 == 0 {
@@ -142,7 +95,7 @@ impl Snake {
         if p_iter.any(|piece| {
             distance(
                 &vec3(piece.x, piece.y, piece.z),
-                &vec3(self.pieces[0].x, self.pieces[0].y, self.pieces[0].z),
+                &self.pieces[0]
             ) < 1.0
         }) {
             self.is_dead = true;
@@ -166,12 +119,12 @@ impl Snake {
             .pieces
             .iter()
             .enumerate()
-            .flat_map(move |(idx, grid_coord)| {
+            .flat_map(move |(idx, piece_pos)| {
                 CUBE_VERTICES.iter().map(move |vertex| Vertex {
                     position: [
-                        vertex.position[0] + grid_coord.x,
-                        vertex.position[1] + grid_coord.y,
-                        vertex.position[2] + grid_coord.z,
+                        vertex.position[0] + piece_pos.x,
+                        vertex.position[1] + piece_pos.y,
+                        vertex.position[2] + piece_pos.z,
                     ],
                     color: if idx == 0 {
                         [0.5, 0.8, 1.0]
@@ -189,18 +142,14 @@ impl Snake {
 
     pub fn update_velocity(&mut self) {
         if let Some(latest_angle) = self.camera_angle_recv.try_iter().last() {
-            self.velocity = Velocity {
-                x: -latest_angle.x,
-                y: -latest_angle.y,
-                z: -latest_angle.z,
-            };
+            self.velocity = vec3(-latest_angle.x, -latest_angle.y, -latest_angle.z);
         }
     }
 
     pub fn check_if_ate_apple(&self, apple: &apple::Apple) -> bool {
         self.pieces.iter().any(|piece| {
             distance(
-                &vec3(piece.x, piece.y, piece.z),
+                piece,
                 &apple.position,
             ) < 1.0
         })
