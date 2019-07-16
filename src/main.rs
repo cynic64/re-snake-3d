@@ -33,6 +33,8 @@ fn main() {
     let mut world = World::from_creator(app.create_new_vbuf_creator());
     let mut world_com = world.get_communicator();
 
+    app.add_world(world);
+
     let bounding_cube_verts: Vec<_> = CUBE_VERTICES
         .iter()
         .map(|vertex| Vertex {
@@ -54,9 +56,6 @@ fn main() {
     let mut last_move_time = std::time::Instant::now();
 
     while !app.done && !snake.is_dead {
-        world.check_for_commands();
-        app.set_vertex_buffers(world.get_vbufs());
-
         if get_elapsed(last_move_time) > TIME_BETWEEN_MOVES {
             last_move_time = std::time::Instant::now();
             snake.move_pieces();
