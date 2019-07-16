@@ -5,6 +5,7 @@ authors = ["cynic64 <f3bl@gmx.com>"]
 edition = "2018"
 
 [dependencies]
-render-engine = { path = "../render-engine" }
+# render-engine = { path = "../render-engine" }
+render-engine = { git = "https://github.com/cynic64/render-engine", rev = "6997b7cb612ad29f524eb7181f24883b2ea9f720" }
 nalgebra-glm = "0.4"
 rand = "0.7"
