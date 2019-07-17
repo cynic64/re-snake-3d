@@ -41,6 +41,8 @@ fn main() {
 
     let mut last_move_time = std::time::Instant::now();
 
+    world_com.update_materials();
+
     while !app.done && !snake.is_dead {
         if get_elapsed(last_move_time) > TIME_BETWEEN_MOVES {
             last_move_time = std::time::Instant::now();
@@ -50,6 +52,8 @@ fn main() {
                 snake.grow();
                 apple.randomize_position();
             }
+
+            world_com.update_materials()
         }
 
         app.draw_frame();

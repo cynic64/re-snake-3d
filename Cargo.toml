@@ -6,6 +6,6 @@ edition = "2018"
 
 [dependencies]
 # render-engine = { path = "../render-engine" }
-render-engine = { git = "https://github.com/cynic64/render-engine", rev = "c6e77e373242efb06a5f973f80521493395320c7" }
+render-engine = { git = "https://github.com/cynic64/render-engine", rev = "585e2fef8e892b37f2d3bdc772e62f51ceac63b3" }
 nalgebra-glm = "0.4"
 rand = "0.7"
