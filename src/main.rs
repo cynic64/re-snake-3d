@@ -27,21 +27,17 @@ fn main() {
         .with_camera(camera)
         .build();
 
-    let world = World::from_creator(app.create_new_vbuf_creator());
-    let mut world_com = world.get_communicator();
+    let mut world_com = app.get_world_com();
 
-    app.add_world(world);
-
-    let bounding_cube_verts = mesh_gen::create_vertices_for_cube([0.0, 0.0, 0.0], WORLD_SIZE / 2.0, [1.0, 0.8, 0.8]);
-    world_com.add_object_from_verts("bounding box".to_string(), bounding_cube_verts);
+    let bounding_cube_mesh = mesh_gen::create_vertices_for_cube([0.0, 0.0, 0.0], WORLD_SIZE / 2.0, [1.0, 0.8, 0.8]);
+    let bounding_cube_spec = ObjectSpec::from_mesh(bounding_cube_mesh);
+    world_com.add_object_from_spec("bounding box".to_string(), bounding_cube_spec);
 
     let mut snake =
         snake::Snake::with_channels_and_com(snake_pos_send, camera_angle_recv, world_com.clone());
     let mut apple = apple::Apple::from_world_com(world_com.clone());
 
     let mut last_move_time = std::time::Instant::now();
-
-    world_com.update_materials();
 
     while !app.done && !snake.is_dead {
         if get_elapsed(last_move_time) > TIME_BETWEEN_MOVES {
@@ -52,8 +48,6 @@ fn main() {
                 snake.grow();
                 apple.randomize_position();
             }
-
-            world_com.update_materials()
         }
 
         app.draw_frame();

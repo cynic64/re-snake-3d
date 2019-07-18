@@ -41,6 +41,7 @@ impl Apple {
         self.world_com.delete_object("apple".to_string());
 
         let verts = mesh_gen::create_vertices_for_cube(self.position.into(), APPLE_RADIUS, [1.0, 0.0, 0.0]);
-        self.world_com.add_object_from_verts("apple".to_string(), verts);
+        let spec = ObjectSpec::from_mesh(verts);
+        self.world_com.add_object_from_spec("apple".to_string(), spec);
     }
 }

@@ -73,9 +73,10 @@ impl Snake {
 
     fn update_mesh(&mut self) {
         let verts = self.get_verts();
+        let spec = ObjectSpec::from_mesh(verts);
         self.world_com.delete_object("snake".to_string());
         self.world_com
-            .add_object_from_verts("snake".to_string(), verts);
+            .add_object_from_spec("snake".to_string(), spec);
     }
 
     fn check_if_dead(&mut self) {
