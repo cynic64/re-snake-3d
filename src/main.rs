@@ -30,7 +30,8 @@ fn main() {
     let mut world_com = app.get_world_com();
 
     let bounding_cube_mesh = mesh_gen::create_vertices_for_cube([0.0, 0.0, 0.0], WORLD_SIZE / 2.0, [1.0, 0.8, 0.8]);
-    let bounding_cube_spec = ObjectSpec::from_mesh(bounding_cube_mesh);
+    let mut bounding_cube_spec = ObjectSpec::from_mesh(bounding_cube_mesh);
+    bounding_cube_spec.switch_fill_type(PrimitiveTopology::LineList);
     world_com.add_object_from_spec("bounding box".to_string(), bounding_cube_spec);
 
     let mut snake =
